@@ -54,7 +54,7 @@ pip install -r requirements.txt
 ### Step 4: Run the Application
 Start the Streamlit chatbot application with this command:
 
-streamlit run app.py
+streamlit run chatbot.py
 
 ### Step 5: Interact with the Chatbot
  After starting the application, Streamlit will display a URL in the terminal (e.g., http://localhost:8501).
