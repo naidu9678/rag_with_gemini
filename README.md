@@ -41,8 +41,10 @@ The **Smart AI Chatbot** is a Streamlit-based application that combines advanced
    cd <repository-folder>
 ### Step 2: Set Up Environment Variables
 
-1. Create a `.env` file in the root of the project directory.
-2. Add your Google API credentials in the following format:
+1. Create GOOGLE API KEY : https://ai.google.dev/gemini-api/docs/api-key
+
+2. Add your Google API KEY in the following format in .env file:
+ GOOGLE_API_KEY=''
 
 ### Step 3: Install Dependencies
 Install all required Python libraries by running the following command:
