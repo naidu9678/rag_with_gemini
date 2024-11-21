@@ -1,6 +1,6 @@
-# Smart AI Chatbot
+# Smart AI Chatbot with RAG and Google Gemini
 
-The **Smart AI Chatbot** is a Streamlit-based application that combines advanced document retrieval and language generation capabilities. It leverages LangChain's tools and Google Generative AI models to create a conversational AI experience optimized for question-answering tasks.
+The **Smart AI Chatbot** is a Streamlit-based application that combines Retrieval Augmented Generation (RAG) and language generation capabilities. It leverages LangChain's tools and Google Generative AI models to create a conversational AI experience optimized for question-answering tasks.
 
 ---
 
