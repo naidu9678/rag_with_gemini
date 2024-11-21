@@ -32,11 +32,10 @@ The **Smart AI Chatbot** is a Streamlit-based application that combines Retrieva
 
 ---
 
-## Usage
-
-### Steps :
-### Step1 : Clone the repository  
+## Usage (Steps) : Follow the below steps to run the chatbot
+ 
    ```bash
+### Step1 : Clone the repository 
    git clone <repository-url>
    cd <repository-folder>
 ### Step 2: Set Up Environment Variables
