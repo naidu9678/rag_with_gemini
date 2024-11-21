@@ -34,7 +34,8 @@ The **Smart AI Chatbot** is a Streamlit-based application that combines advanced
 
 ## Usage
 
-### Step1 : Clone the Repository**:
+### Steps :
+### Step1 : Clone the repository  
    ```bash
    git clone <repository-url>
    cd <repository-folder>
