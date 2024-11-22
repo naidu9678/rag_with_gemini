@@ -63,3 +63,18 @@ Enter your query in the chat interface, and the chatbot will:
 Retrieve relevant context.
 Provide concise and accurate responses.
 
+### Step 6: Copy some pdf files which you would like to use it for Chatbot into pdfs folder
+
+### Step 7: Run pdfloader for creating embeddings and Storing in Vectod DB.
+
+  python pdfloader.py
+
+### 8: Run chatbot app to test chatbot for your content.
+
+streamlit run chatbot.py
+
+
+
+
+
+
