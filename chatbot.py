@@ -18,6 +18,10 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 import faiss
+import os
+
+# Toggle backend-only debug logs
+DEBUG = True  # set to False to silence prints
 
 # Load environment variables from .env file
 load_dotenv()
@@ -36,6 +40,8 @@ def initialize_vectorstore():
         embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         vectorstore = FAISS.load_local("faiss_index", embedding_model, allow_dangerous_deserialization=True)
         st.session_state.vectorstore = vectorstore
+        if DEBUG:
+            print("[DEBUG] Vectorstore initialized from 'faiss_index'")
     except Exception as e:
         st.error(f"Error initializing vector store: {e}")
         raise
@@ -46,7 +52,10 @@ def setup_retriever():
         st.error("Vectorstore is not initialized.")
         st.stop()
     try:
-        return st.session_state.vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 10})
+        retriever = st.session_state.vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+        if DEBUG:
+            print("[DEBUG] Retriever set with search_type='similarity', k=3")
+        return retriever
     except Exception as e:
         st.error(f"Error setting up retriever: {e}")
         raise
@@ -54,7 +63,10 @@ def setup_retriever():
 def setup_llm():
     """Initialize the Language Model (LLM) for generating responses."""
     try:
-        return ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0, max_tokens=None, timeout=None)
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0, max_tokens=None, timeout=None)
+        if DEBUG:
+            print("[DEBUG] LLM initialized: gemini-1.5-pro, temperature=0")
+        return llm
     except Exception as e:
         st.error(f"Error initializing LLM: {e}")
         raise
@@ -71,22 +83,68 @@ def setup_prompt_template():
             "\n\n"
             "{context}"
         )
-        return ChatPromptTemplate.from_messages([
+        prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
             ("human", "{input}"),
         ])
+        if DEBUG:
+            print("[DEBUG] Prompt template prepared")
+        return prompt
     except Exception as e:
         st.error(f"Error setting up prompt template: {e}")
         raise
 
+def format_context_docs(docs):
+    """Create a joined context string and a debug-friendly summary of docs."""
+    joined = "\n\n".join(d.page_content for d in docs)
+    if DEBUG:
+        print("[DEBUG] Retrieved context documents:")
+        for idx, d in enumerate(docs, start=1):
+            meta = getattr(d, "metadata", {}) or {}
+            snippet = (d.page_content or "")[:400].replace("\n", " ")
+            print(f"  - Context #{idx} | metadata={meta} | text_snippet='{snippet}...'")
+    return joined
+
+def render_final_prompt_text(prompt_template, context_text, user_input):
+    """Render the final prompt string for debugging."""
+    messages = prompt_template.format_messages(context=context_text, input=user_input)
+    if DEBUG:
+        print("[DEBUG] Final rendered prompt:")
+        for m in messages:
+            role = getattr(m, "type", "message").upper()
+            content = getattr(m, "content", "")
+            print(f"[{role}]\n{content}\n")
+    return messages
+
 def process_query(query, retriever, llm, prompt):
-    """Process the user query through the retrieval and generation pipeline."""
+    """Process the user query through the retrieval and generation pipeline with backend-only logs."""
     try:
+        # Retrieve docs (so we can log them)
+        retrieved_docs = retriever.get_relevant_documents(query)
+
+        # Build context and log
+        context_text = format_context_docs(retrieved_docs)
+
+        # Render the final prompt and log
+        rendered_messages = render_final_prompt_text(prompt, context_text, query)
+
+        # Build the chains and invoke normally
         question_answer_chain = create_stuff_documents_chain(llm, prompt)
         rag_chain = create_retrieval_chain(retriever, question_answer_chain)
         response = rag_chain.invoke({"input": query})
+
+        if DEBUG:
+            print("[DEBUG] Raw LLM response object:")
+            try:
+                # response often is a dict; printing directly is ok
+                print(response)
+            except Exception:
+                print("[DEBUG] Could not pretty print response")
+
         return response
     except Exception as e:
+        if DEBUG:
+            print(f"[DEBUG] Error processing query: {e}")
         st.error(f"Error processing query: {e}")
         raise
 
@@ -113,9 +171,13 @@ if query:
     with st.spinner("Processing your request..."):
         try:
             response = process_query(query, retriever, llm, prompt)
-            st.session_state.chat_history.append({"assistant": response.get("answer", "<no answer>")})
+            answer = response.get("answer", "<no answer>")
+            if DEBUG:
+                print("[DEBUG] Assistant answer:", answer)
 
-            # Display chat history
+            st.session_state.chat_history.append({"assistant": answer})
+
+            # Display chat history (no debug info)
             for chat in st.session_state.chat_history:
                 if "user" in chat:
                     st.write(f"**You:** {chat['user']}")

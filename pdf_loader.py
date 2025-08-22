@@ -1,5 +1,3 @@
-# pdf_loader.py
-
 import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -20,9 +18,22 @@ def load_pdfs_to_vectorstore(pdf_paths, faiss_index_path):
     try:
         # Create embeddings
         embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        vectorstore = FAISS.load_local(faiss_index_path, embedding_model, allow_dangerous_deserialization=True)
+
+        # Try loading existing FAISS index, otherwise create a new one
+        if os.path.exists(faiss_index_path):
+            vectorstore = FAISS.load_local(
+                faiss_index_path, 
+                embedding_model, 
+                allow_dangerous_deserialization=True
+            )
+            print(f"Loaded existing FAISS index from '{faiss_index_path}'")
+        else:
+            vectorstore = FAISS.from_texts([], embedding_model)
+            print(f"Created new FAISS index at '{faiss_index_path}'")
 
         for pdf_path in pdf_paths:
+            print(f"\n📄 Processing PDF: {pdf_path}")
+            
             # Load PDF
             loader = PyPDFLoader(pdf_path)
             data = loader.load()
@@ -31,11 +42,23 @@ def load_pdfs_to_vectorstore(pdf_paths, faiss_index_path):
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)
             docs = text_splitter.split_documents(data)
 
+            for i, doc in enumerate(docs, start=1):
+                chunk_text = doc.page_content
+                # Print the chunked text
+                print(f"\n--- Chunk {i} ---")
+                print(chunk_text[:1000])  # Print only first 500 chars for readability
+
+                # Generate embedding
+                embedding = embedding_model.embed_query(chunk_text)
+                print(f"Embedding length: {len(embedding)}")
+                print(f"First 20 embedding values: {embedding[:20]}")
+
             # Add new documents to the vector store
             vectorstore.add_documents(docs)
 
         # Save the updated vector store
         vectorstore.save_local(faiss_index_path)
+        print(f"\n✅ Vectorstore updated and saved to '{faiss_index_path}'")
 
         return vectorstore
     except Exception as e:
@@ -47,10 +70,13 @@ if __name__ == "__main__":
     faiss_index_path = "faiss_index"  # Path to your FAISS index file
 
     # Collect all PDF file paths from the specified folder
-    pdf_files = [os.path.join(pdfs_folder, filename) for filename in os.listdir(pdfs_folder) if filename.endswith('.pdf')]
+    pdf_files = [
+        os.path.join(pdfs_folder, filename) 
+        for filename in os.listdir(pdfs_folder) if filename.endswith('.pdf')
+    ]
 
     try:
         updated_vectorstore = load_pdfs_to_vectorstore(pdf_files, faiss_index_path)
-        print("PDFs loaded successfully into the vector store.")
+        print("\n🎉 PDFs loaded successfully into the vector store.")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"\n❌ An error occurred: {e}")
